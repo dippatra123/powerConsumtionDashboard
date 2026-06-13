@@ -12,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+//<----------login api----------->
 app.post("/api/login", async (req, res) => {
   const { user_name, password } = req.body;
 
@@ -29,6 +30,7 @@ app.post("/api/login", async (req, res) => {
 
     if (rows.length === 0) {
       return res.status(401).json({
+        sucess: false,
         message: "Invalid username",
       });
     }
@@ -37,6 +39,7 @@ app.post("/api/login", async (req, res) => {
 
     if (user.password !== password) {
       return res.status(401).json({
+        success: false,
         message: "Incorrect password",
       });
     }
@@ -49,7 +52,7 @@ app.post("/api/login", async (req, res) => {
       },
       JWT_SECRET,
       {
-        expiresIn: "1h",
+        expiresIn: "30m",
       },
     );
 
@@ -58,7 +61,7 @@ app.post("/api/login", async (req, res) => {
       httpOnly: true,
       sameSite: "lax",
       secure: false, // true in production with HTTPS
-      maxAge: 60 * 60 * 1000, // 1 hour
+      maxAge: 30 * 60 * 1000, // 1 hour
     });
 
     return res.status(200).json({
@@ -81,6 +84,38 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+//<----------auth middleware------------>
+const authMiddleWare = (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token)
+    return res.status(401).json({
+      success: false,
+      massege: "no token found",
+    });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
+//<-------------auth check---------------->
+app.get("/api/auth-check", authMiddleWare, (req, res) => {
+  res.json({
+    isAuthenticated: true,
+    user: req.user,
+  });
+});
+//<-----------log out api----------->
+app.post("/api/logout", (req, res) => {
+  (res.clearCookie("token"),
+    res.json({
+      sucess: true,
+      message: "Logged out",
+    }));
+});
+//<-------------get data for graph------------->
 app.get("/getData", async (req, res) => {
   try {
     const [rows] = await pool.query(`select* from vw_all_machine_consumption`);
