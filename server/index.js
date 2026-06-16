@@ -8,7 +8,13 @@ const app = express();
 const port = 5030;
 const JWT_SECRET = "mySecretKey123";
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
+app.use(cookieparse());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -30,7 +36,7 @@ app.post("/api/login", async (req, res) => {
 
     if (rows.length === 0) {
       return res.status(401).json({
-        sucess: false,
+        success: false,
         message: "Invalid username",
       });
     }
@@ -90,7 +96,7 @@ const authMiddleWare = (req, res, next) => {
   if (!token)
     return res.status(401).json({
       success: false,
-      massege: "no token found",
+      messege: "No token found",
     });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -109,28 +115,29 @@ app.get("/api/auth-check", authMiddleWare, (req, res) => {
 });
 //<-----------log out api----------->
 app.post("/api/logout", (req, res) => {
-  (res.clearCookie("token"),
-    res.json({
-      sucess: true,
-      message: "Logged out",
-    }));
+  res.clearCookie("token");
+
+  res.json({
+    success: true,
+    message: "Logged out",
+  });
 });
 //<-------------get data for graph------------->
-app.get("/getData", async (req, res) => {
+app.get("/getData", authMiddleWare, async (req, res) => {
   try {
     const [rows] = await pool.query(`select* from vw_all_machine_consumption`);
 
     if (rows.length === 0) {
       return res.json({ massege: "No data Found" });
     }
-    newRows = rows.map((ele) => {
+    const newRows = rows.map((ele) => {
       const date = new Date(ele.date);
       return {
         ...ele,
         date:
           String(date.getDate()).padStart(2, "0") +
           "-" +
-          String(date.getMonth()).padStart(2, "0") +
+          String(date.getMonth() + 1).padStart(2, "0") +
           "-" +
           date.getFullYear(),
       };
