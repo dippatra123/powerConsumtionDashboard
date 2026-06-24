@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../Features/AuthSlice";
 
 function Login() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const { loading, error, isAuthenticated, user } = useSelector(
+    (state) => state.auth,
+  );
 
   const [formData, setFormData] = useState({
     user_name: "",
@@ -11,7 +18,6 @@ function Login() {
 
   const [message, setMessage] = useState("");
 
-  /* ================= HANDLE INPUT ================= */
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -19,23 +25,44 @@ function Login() {
     });
   };
 
-  /* ================= HANDLE SUBMIT ================= */
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    dispatch(loginUser(formData)).then((res) => {
+      if (res.meta.requestStatus === "fulfilled") {
+        setMessage("Login Successful");
+
+        if (res.payload.user.role === "admin") {
+          navigate("/dashboard");
+        } else {
+          navigate("/");
+        }
+      }
+    });
   };
 
-  /* ================= UI ================= */
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === "admin") {
+        navigate("/dashboard");
+      } else {
+        navigate("/");
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
+
   return (
     <div className="container d-flex justify-content-center align-items-center vh-100">
-      <div className="card p-4 shadow" style={{ width: "350px" }}>
+      <div className="card shadow p-4" style={{ width: "350px" }}>
         <h4 className="text-center mb-3">Login</h4>
 
-        {/* Success / Error Message */}
+        {(message || error) && (
+          <div className="alert alert-info text-center">{message || error}</div>
+        )}
 
         <form onSubmit={handleSubmit}>
-          {/* Username */}
           <div className="mb-3">
-            <label className="form-label">Username</label>
+            <label>Username</label>
             <input
               type="text"
               name="user_name"
@@ -46,9 +73,8 @@ function Login() {
             />
           </div>
 
-          {/* Password */}
           <div className="mb-3">
-            <label className="form-label">Password</label>
+            <label>Password</label>
             <input
               type="password"
               name="password"
@@ -59,9 +85,12 @@ function Login() {
             />
           </div>
 
-          {/* Button */}
-          <button type="submit" className="btn btn-primary w-100">
-            Login
+          <button
+            type="submit"
+            className="btn btn-primary w-100"
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>
