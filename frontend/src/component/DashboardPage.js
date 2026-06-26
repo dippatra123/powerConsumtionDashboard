@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -27,46 +26,29 @@ const COLORS = [
   "#00d084",
 ];
 
-const pieData = [
-  { name: "WBS-1", value: 340 },
-  { name: "WBS-2", value: 340 },
-  { name: "DD Saw", value: 250 },
-  { name: "Dryer-1", value: 200 },
-  { name: "Dryer-2", value: 200 },
-  { name: "Calibrator", value: 340 },
-  { name: "Hotpress", value: 340 },
-];
-
-const machineData = [
-  { name: "DD Saw", value: 250 },
-  { name: "WBS-2", value: 340 },
-  { name: "WBS-1", value: 340 },
-  { name: "CALIBRATOR", value: 340 },
-  { name: "HOTPRESS-1", value: 340 },
-  { name: "HOTPRESS-2", value: 340 },
-  { name: "DRYER-2", value: 240 },
-  { name: "DRYER-1", value: 240 },
-];
-
-const lineData = [
-  { day: "23", value: 110 },
-  { day: "24", value: 110 },
-  { day: "25", value: 0 },
-  { day: "26", value: 110 },
-  { day: "27", value: 0 },
-];
-
-const cards = [
-  "DD Saw (Meter em0011)",
-  "WBS-2 (Meter em0012)",
-  "WBS-1 (Meter em0013)",
-  "CALIBRATOR (Meter em0014)",
-  "HOTPRESS-1 (Meter em0017)",
-  "HOTPRESS-2 (Meter em0022)",
-];
-
 const DashboardPage = () => {
   const [data, setData] = useState([]);
+
+  const date = new Date();
+
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  // Fixed
+  const fullDate = `${months[date.getMonth()]} - ${date.getFullYear()}`;
+
   const getData = async () => {
     try {
       const response = await fetch("http://localhost:5030/getData", {
@@ -79,36 +61,55 @@ const DashboardPage = () => {
 
       setData(result);
     } catch (error) {
-      console.error("Error:", error);
+      console.error(error);
     }
   };
+
   useEffect(() => {
     getData();
   }, []);
-  const total = data.reduce(
-    (sum, item) => sum + parseFloat(item.consumption_kwh || 0),
-    0,
-  );
-  const machineWishConsumtion = Object.entries(
-    data.reduce((acc, item) => {
-      acc[item.machine_name] =
-        (acc[item.machine_name] || 0) + parseFloat(item.consumption_kwh || 0);
 
-      return acc;
-    }, {}),
-  ).map(([name, value]) => ({
-    name,
-    value: Number(value.toFixed(2)),
-  }));
+  // Total Consumption
+  const total = Array.isArray(data)
+    ? data.reduce((sum, item) => sum + parseFloat(item.consumption_kwh || 0), 0)
+    : 0;
 
-  console.log(machineWishConsumtion);
+  // Pie & Bar Chart Data
+  const machineWishConsumtion = Array.isArray(data)
+    ? Object.entries(
+        data.reduce((acc, item) => {
+          acc[item.machine_name] =
+            (acc[item.machine_name] || 0) +
+            parseFloat(item.consumption_kwh || 0);
+
+          return acc;
+        }, {}),
+      ).map(([name, value]) => ({
+        name,
+        value: Number(value.toFixed(2)),
+      }))
+    : [];
+
+  // Line Chart Data
+  const dataForGraph = Array.isArray(data)
+    ? data.reduce((acc, item) => {
+        if (!acc[item.machine_name]) {
+          acc[item.machine_name] = [];
+        }
+
+        acc[item.machine_name].push(item);
+
+        return acc;
+      }, {})
+    : {};
+
   return (
     <div className="container-fluid p-4 dashboard">
-      {/* Top Section */}
+      {/* Summary */}
       <div className="summary-box">
-        <h4 className="text-center">Monthly Consumption — 2025-03</h4>
+        <h4 className="text-center">Monthly Consumption — {fullDate}</h4>
 
-        <h6 className="text-center mb-4">Total: {total.toFixed(2)} KWh</h6>
+        <h6 className="text-center mb-4">Total : {total.toFixed(2)} KWh</h6>
 
         <div className="row">
           {/* Pie Chart */}
@@ -123,7 +124,7 @@ const DashboardPage = () => {
                   innerRadius={50}
                   label
                 >
-                  {pieData.map((entry, index) => (
+                  {machineWishConsumtion.map((entry, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -133,7 +134,7 @@ const DashboardPage = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Horizontal Bar */}
+          {/* Horizontal Bar Chart */}
           <div className="col-md-6">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={machineWishConsumtion} layout="vertical">
@@ -146,7 +147,7 @@ const DashboardPage = () => {
                 <Tooltip />
 
                 <Bar dataKey="value">
-                  {machineData.map((entry, index) => (
+                  {machineWishConsumtion.map((entry, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
@@ -156,29 +157,33 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="row mt-4">
-        {cards.map((item, index) => (
-          <div className="col-md-4 mb-4" key={index}>
+      {/* Machine Cards */}
+      <div className="row">
+        {Object.entries(dataForGraph).map(([machineName, graphData]) => (
+          <div className="col-md-4 mb-4" key={machineName}>
             <div className="machine-card">
-              <h5>{item}</h5>
+              <h5>{machineName}</h5>
 
-              <p>Month: 2025-03</p>
+              <p>{fullDate}</p>
 
               <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={lineData}>
+                <LineChart data={graphData}>
                   <CartesianGrid strokeDasharray="0" />
 
-                  <XAxis dataKey="day" stroke="#0f0f0f" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#1a1818"
+                    tick={{ fontSize: 12 }}
+                  />
 
-                  <YAxis stroke="#0f0f0f" />
+                  <YAxis stroke="#1a1818" />
 
                   <Tooltip />
 
                   <Line
                     type="monotone"
-                    dataKey="value"
-                    stroke="#ff6682"
+                    dataKey="consumption_kwh"
+                    stroke="#c338a7"
                     strokeWidth={3}
                   />
                 </LineChart>
