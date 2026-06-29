@@ -151,7 +151,148 @@ app.get("/getData", authMiddleWare, async (req, res) => {
       .json({ error: "Internal server error", details: err.message });
   }
 });
+app.get(
+  "/api/getData/everyDayPowerConsumtion",
+  authMiddleWare,
+  async (req, res) => {
+    try {
+      let { startDate, endDate } = req.query;
 
+      // Default: Current month
+      if (!startDate || !endDate) {
+        const today = new Date();
+
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+
+        startDate = `${year}-${month}-01`;
+        endDate = `${year}-${month}-${day}`;
+      }
+
+      const [rows] = await pool.query(
+        `
+        SELECT *
+        FROM vw_all_machine_consumption
+        WHERE date BETWEEN ? AND ?
+        ORDER BY date, machine_name
+        `,
+        [startDate, endDate],
+      );
+
+      if (rows.length === 0) {
+        return res.json({
+          message: "No data found",
+          data: [],
+        });
+      }
+
+      // Format Date
+      const newRow = rows.map((ele) => {
+        const dateCon = new Date(ele.date);
+
+        return {
+          ...ele,
+          date:
+            String(dateCon.getDate()).padStart(2, "0") +
+            "-" +
+            String(dateCon.getMonth() + 1).padStart(2, "0") +
+            "-" +
+            dateCon.getFullYear(),
+        };
+      });
+
+      // Total Energy
+      const totalEnergyConsumption = Number(
+        newRow
+          .reduce((acc, ele) => acc + Number(ele.consumption_kwh || 0), 0)
+          .toFixed(2),
+      );
+
+      // Total Production
+      const totalProduction = Number(
+        newRow
+          .reduce((acc, ele) => acc + Number(ele.production || 0), 0)
+          .toFixed(2),
+      );
+
+      // Efficiency
+      const efficiency =
+        totalEnergyConsumption === 0
+          ? 0
+          : Number((totalProduction / totalEnergyConsumption).toFixed(2));
+
+      // Total Days
+      const days =
+        Math.floor(
+          (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24),
+        ) + 1;
+
+      // Average Per Day
+      const averagePerDay =
+        days === 0 ? 0 : Number((totalEnergyConsumption / days).toFixed(2));
+
+      // Daily Consumption
+      const dailyConsumption = newRow.reduce((acc, ele) => {
+        if (!acc[ele.date]) {
+          acc[ele.date] = 0;
+        }
+
+        acc[ele.date] += Number(ele.consumption_kwh || 0);
+
+        return acc;
+      }, {});
+
+      const dailyConsumptionArray = Object.entries(dailyConsumption).map(
+        ([date, consumption]) => ({
+          date,
+          consumption: Number(consumption.toFixed(2)),
+        }),
+      );
+
+      // Machine-wise Consumption
+      const machineWiseConsumption = newRow.reduce((acc, ele) => {
+        if (!acc[ele.machine_name]) {
+          acc[ele.machine_name] = 0;
+        }
+
+        acc[ele.machine_name] += Number(ele.consumption_kwh || 0);
+
+        return acc;
+      }, {});
+
+      const machineWiseConsumptionArray = Object.entries(
+        machineWiseConsumption,
+      ).map(([machine_name, consumption]) => ({
+        machine_name,
+        consumption: Number(consumption.toFixed(2)),
+      }));
+
+      return res.json({
+        message: "success",
+
+        summary: {
+          totalEnergyConsumption,
+          totalProduction,
+          efficiency,
+          averagePerDay,
+          totalDays: days,
+        },
+
+        dailyConsumption: dailyConsumptionArray,
+
+        machineWiseConsumption: machineWiseConsumptionArray,
+
+        data: newRow,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Server Error",
+      });
+    }
+  },
+);
 app.listen(port, () => {
   console.log(`my app is running on :${port}`);
 });

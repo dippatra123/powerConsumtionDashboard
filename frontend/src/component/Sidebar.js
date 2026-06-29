@@ -53,43 +53,33 @@ function Sidebar({ collapsed, setCollapsed }) {
           </NavLink>
 
           <NavLink
-            to="/entryPage"
+            to="/to_energyData"
             className={({ isActive }) =>
               isActive ? "menu-item active" : "menu-item"
             }
           >
-            <i className="fas fa-warehouse"></i>
-            {!collapsed && <span>Stock Entry</span>}
+            <i className="fas fa-gauge-high"></i>
+            {!collapsed && <span>Energy Data</span>}
           </NavLink>
 
           <NavLink
-            to="/get_excel"
+            to="/to_machineAnalytics"
             className={({ isActive }) =>
               isActive ? "menu-item active" : "menu-item"
             }
           >
-            <i className="fas fa-upload"></i>
-            {!collapsed && <span>Upload Code</span>}
+            <i className="fas fa-industry"></i>
+            {!collapsed && <span>Machine Analytics</span>}
           </NavLink>
 
           <NavLink
-            to="/get_reconsile_file"
+            to="/to_report"
             className={({ isActive }) =>
               isActive ? "menu-item active" : "menu-item"
             }
           >
-            <i className="fas fa-file-alt"></i>
-            {!collapsed && <span>Reconcile</span>}
-          </NavLink>
-
-          <NavLink
-            to="/audit"
-            className={({ isActive }) =>
-              isActive ? "menu-item active" : "menu-item"
-            }
-          >
-            <i className="fas fa-chart-bar"></i>
-            {!collapsed && <span>Audit</span>}
+            <i className="fas fa-file-lines"></i>
+            {!collapsed && <span>Report</span>}
           </NavLink>
 
           <div className="logoutDiv">

@@ -1,0 +1,13 @@
+.form-control,
+.form-select {
+  height: 35px;
+  border-radius: 15px !important;
+}
+
+.btn {
+  height: 35px;
+  border-radius: 15px !important;
+}
+.form-label {
+  font-size: 14px;
+}

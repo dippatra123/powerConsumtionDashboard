@@ -2,10 +2,10 @@ import "./App.css";
 import Login from "./component/Login";
 import Sidebar from "./component/Sidebar";
 import DashboardPage from "./component/DashboardPage";
-import EntryPage from "./component/EntryPage";
-import UploadCode from "./component/UploadCode";
-import Reconcile from "./component/Reconcile";
-import Audit from "./component/Audit";
+import EnergyDataPage from "./component/EnergyDataPage";
+import MachineAnalyticPage from "./component/MachineAnalyticPage";
+
+import Report from "./component/Report";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import { useState, useEffect } from "react";
 import {
@@ -67,10 +67,12 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/entryPage" element={<EntryPage />} />
-          <Route path="/get_excel" element={<UploadCode />} />
-          <Route path="/get_reconsile_file" element={<Reconcile />} />
-          <Route path="/audit" element={<Audit />} />
+          <Route path="/to_energyData" element={<EnergyDataPage />} />
+          <Route
+            path="/to_machineAnalytics"
+            element={<MachineAnalyticPage />}
+          />
+          <Route path="/to_report" element={<Report />} />
         </Route>
 
         {/* Fallback Route */}
